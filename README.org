@@ -1,0 +1,38 @@
+* Lsplex A Languager Server Multiplexer
+
+Lsplex functions as an inbetween for a language server client and multiple language servers. This can be used in scenarios where a client only supports one server but diagnostics or code actions of multiple are desired.
+
+** Installation
+Lsplex has to be built from source. You can either use clone and use cargo, or the nix to get it.
+
+** With Emacs eglot
+
+I use it with eglot in order to get both ruff and pyright at the same time. E.g.
+#+begin_src emacs-lisp
+  (add-to-list 'eglot-server-programs '(python-ts-mode . ("~/repos/lsplex/target/debug/lsplex" "--server" "pyright-langserver --stdio" "--server" "ruff server" )))
+#+end_src
+
+** Functional Details
+Lsplex will intercept all messages between client and servers. It will log the origin of a request (whether from a server or client) and ensure the result is returned to the correct source.
+
+Requests from the client will be forwarded to only the default language server, except when the method is codeAction or *initialize. These methods will be forwarded to all servers that support the method. Requests originating from a server are logged and forwarded directly to the client.
+
+*In the beginning it is assumed all servers support initialization. Otherwise, the request will *only* be forwarded to the default language server.
+
+Notifications are mostly blindly forwarded between client and servers, except for the publishDiagnostics types. These are merged from the servers before being sent to the client. The publishDiagnostics notifications will be aggregated with a timeout (configurable?) before being forwarded to the client.
+
+Results are collected and merged from all language servers that were sent a request before being returned to a client. This should only happen for codeActions and initialize which are the only methods that are sent to multiple servers. Results from the client will be returned only to the server which issued the originating request.
+
+** Capabilities
+Ordering matters when adding language servers. The first one is considered the default and the bulk of requests will go only to it.
+
+Code actions on the other hand will go to all servers that register the capability.
+
+Initially it is assumed that all servers support initialize method and the request will go to every one.
+
+** Future Improvements
+
+[ ] Timeouts for requests to multiple servers
+[ ] Gracefully drop failing servers
+[ ] Configuration to select which server is a method provider
+
