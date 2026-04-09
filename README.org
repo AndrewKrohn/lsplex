@@ -9,15 +9,14 @@ Lsplex has to be built from source. You can either use clone and use cargo, or t
 
 I use it with eglot in order to get both ruff and pyright at the same time. E.g.
 #+begin_src emacs-lisp
-  (add-to-list 'eglot-server-programs '(python-ts-mode . ("~/repos/lsplex/target/debug/lsplex" "--server" "pyright-langserver --stdio" "--server" "ruff server" )))
+  (add-to-list 'eglot-server-programs '(python-ts-mode . ("lsplex" "--server" "pyright-langserver --stdio" "--server" "ruff server" )))
 #+end_src
 
 ** Functional Details
 Lsplex will intercept all messages between client and servers. It will log the origin of a request (whether from a server or client) and ensure the result is returned to the correct source.
 
-Requests from the client will be forwarded to only the default language server, except when the method is codeAction or *initialize. These methods will be forwarded to all servers that support the method. Requests originating from a server are logged and forwarded directly to the client.
+Requests from the client will be forwarded to only the default language server, except when the method is codeAction or initialize[fn:1]. These methods will be forwarded to all servers that support the method. Requests originating from a server are logged and forwarded directly to the client.
 
-*In the beginning it is assumed all servers support initialization. Otherwise, the request will *only* be forwarded to the default language server.
 
 Notifications are mostly blindly forwarded between client and servers, except for the publishDiagnostics types. These are merged from the servers before being sent to the client. The publishDiagnostics notifications will be aggregated with a timeout (configurable?) before being forwarded to the client.
 
@@ -36,3 +35,6 @@ Initially it is assumed that all servers support initialize method and the reque
 [ ] Gracefully drop failing servers
 [ ] Configuration to select which server is a method provider
 
+
+
+[fn:1]In the beginning it is assumed all servers support initialization. Otherwise, the request will *only* be forwarded to the default language server.
